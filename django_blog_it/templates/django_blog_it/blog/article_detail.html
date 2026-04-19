@@ -118,29 +118,47 @@ $(document).ready(function() {
     $('#like-btn').click(function() {
         var btn = $(this);
         var articleId = btn.data('article-id');
-        $.post('{% url "django_blog_it:toggle_like" %}', 
-            {article_id: articleId, csrfmiddlewaretoken: '{{ csrf_token }}'},
-            function(data) {
+        
+        $.ajax({
+            url: '{% url "django_blog_it:toggle_like" %}',
+            type: 'POST',
+            data: {article_id: articleId},
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Cache-Control': 'no-cache, no-store, must-revalidate'
+            },
+            cache: false,
+            dataType: 'json',
+            success: function(data) {
                 if(data.success) {
                     btn.toggleClass('liked', data.liked);
-                    btn.find('span').text(data.likes_count);
+                    document.querySelector('#like-btn span').textContent = data.likes_count;
                 }
             }
-        );
+        });
     });
     
     $('#favorite-btn').click(function() {
         var btn = $(this);
         var slug = btn.data('slug');
-        $.post('/article/' + slug + '/favorite/',
-            {csrfmiddlewaretoken: '{{ csrf_token }}'},
-            function(data) {
+        
+        $.ajax({
+            url: '{% url "django_blog_it:toggle_favorite" slug=article.slug %}',
+            type: 'POST',
+            data: {},
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Cache-Control': 'no-cache, no-store, must-revalidate'
+            },
+            cache: false,
+            dataType: 'json',
+            success: function(data) {
                 if(data.success) {
                     btn.toggleClass('favorited', data.favorited);
-                    btn.find('span').text(data.favorites_count);
+                    document.querySelector('#favorite-btn span').textContent = data.favorites_count;
                 }
             }
-        );
+        });
     });
     
     $('#comment-form').submit(function(e) {
@@ -150,7 +168,7 @@ $(document).ready(function() {
         var content = textarea.val();
         if(!content.trim()) return;
         
-        $.post(window.location.pathname + 'comment/',
+        $.post('{% url "django_blog_it:add_comment" slug=article.slug %}',
             form.serialize(),
             function(data) {
                 if(data.success) {

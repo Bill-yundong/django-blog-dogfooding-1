@@ -342,7 +342,7 @@ def add_comment(request, slug):
         parent=parent_comment
     )
     
-    article.comments_count = article.comments.count()
+    article.comments_count = article.comments.filter(parent=None, is_active=True).count()
     article.save(update_fields=['comments_count'])
     
     return JsonResponse({
@@ -362,7 +362,7 @@ def delete_comment(request, comment_id):
     article = comment.article
     comment.delete()
     
-    article.comments_count = article.comments.count()
+    article.comments_count = article.comments.filter(parent=None, is_active=True).count()
     article.save(update_fields=['comments_count'])
     
     return JsonResponse({'success': True})
@@ -404,6 +404,7 @@ def toggle_like(request):
     
     if article_id:
         article = get_object_or_404(Article, id=article_id)
+        
         like, created = Like.objects.get_or_create(user=request.user, article=article)
         
         if not created:
@@ -412,11 +413,17 @@ def toggle_like(request):
         else:
             liked = True
         
-        return JsonResponse({
+        article.refresh_from_db()
+        
+        response = JsonResponse({
             'success': True,
             'liked': liked,
             'likes_count': article.likes_count
         })
+        response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response['Pragma'] = 'no-cache'
+        response['Expires'] = '0'
+        return response
     
     elif comment_id:
         comment = get_object_or_404(Comment, id=comment_id)
@@ -428,11 +435,17 @@ def toggle_like(request):
         else:
             liked = True
         
-        return JsonResponse({
+        comment.refresh_from_db()
+        
+        response = JsonResponse({
             'success': True,
             'liked': liked,
             'likes_count': comment.likes_count
         })
+        response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response['Pragma'] = 'no-cache'
+        response['Expires'] = '0'
+        return response
     
     return JsonResponse({'success': False, 'error': 'Invalid request'})
 
@@ -449,11 +462,17 @@ def toggle_favorite(request, slug):
     else:
         favorited = True
     
-    return JsonResponse({
+    article.refresh_from_db()
+    
+    response = JsonResponse({
         'success': True,
         'favorited': favorited,
         'favorites_count': article.favorites_count
     })
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response['Pragma'] = 'no-cache'
+    response['Expires'] = '0'
+    return response
 
 
 def search_articles(request):
@@ -560,6 +579,11 @@ def article_detail(request, slug):
     article.increase_views()
     
     comments = article.comments.filter(parent=None, is_active=True).order_by('-created_at')
+    
+    actual_comments_count = comments.count()
+    if article.comments_count != actual_comments_count:
+        article.comments_count = actual_comments_count
+        article.save(update_fields=['comments_count'])
     
     is_liked = False
     is_favorited = False
