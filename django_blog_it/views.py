@@ -318,7 +318,11 @@ def home(request):
         'tags': tags,
         'popular_articles': popular_articles,
     }
-    return render(request, 'django_blog_it/blog/blog_list.html', context)
+    response = render(request, 'django_blog_it/blog/blog_list.html', context)
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response['Pragma'] = 'no-cache'
+    response['Expires'] = '0'
+    return response
 
 
 @login_required
