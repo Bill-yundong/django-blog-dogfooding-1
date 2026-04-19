@@ -9,7 +9,7 @@ from .views import (dashboard, user_list, user_role,
                     add_comment, delete_comment, get_comments,
                     toggle_like, toggle_favorite, search_articles,
                     user_profile, edit_profile, toggle_follow, article_detail,
-                    user_login, user_logout)
+                    user_login, user_logout, get_article_stats)
 
 from django_blog_it.sitemaps import sitemap_xml
 from django.conf.urls import url
@@ -18,6 +18,7 @@ app_name = "django_blog_it"
 
 urlpatterns = [
     path('', home, name='home'),
+    path('api/article-stats/', get_article_stats, name='get_article_stats'),
     path('login/', user_login, name='login'),
     path('logout/', user_logout, name='logout'),
     path('search/', search_articles, name='search'),

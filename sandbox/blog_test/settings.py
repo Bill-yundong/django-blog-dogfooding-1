@@ -37,7 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django_blog_it.apps.DjangoBlogItConfig',
+    'django_blog_it',
     'simple_pagination',
 ]
 
