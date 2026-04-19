@@ -318,7 +318,11 @@ def home(request):
         'tags': tags,
         'popular_articles': popular_articles,
     }
-    return render(request, 'django_blog_it/blog/blog_list.html', context)
+    response = render(request, 'django_blog_it/blog/blog_list.html', context)
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response['Pragma'] = 'no-cache'
+    response['Expires'] = '0'
+    return response
 
 
 @login_required
@@ -605,7 +609,34 @@ def article_detail(request, slug):
         'is_favorited': is_favorited,
         'related_articles': related_articles,
     }
-    return render(request, 'django_blog_it/blog/article_detail.html', context)
+    response = render(request, 'django_blog_it/blog/article_detail.html', context)
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response['Pragma'] = 'no-cache'
+    response['Expires'] = '0'
+    return response
+
+
+@require_GET
+def get_articles_stats(request):
+    slugs_param = request.GET.get('slugs', '')
+    if not slugs_param:
+        response = JsonResponse({'articles': []})
+        response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response['Pragma'] = 'no-cache'
+        response['Expires'] = '0'
+        return response
+    
+    slugs = slugs_param.split(',')
+    articles = Article.objects.filter(slug__in=slugs).values(
+        'slug', 'views', 'likes_count', 'comments_count'
+    )
+    
+    articles_list = list(articles)
+    response = JsonResponse({'articles': articles_list})
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response['Pragma'] = 'no-cache'
+    response['Expires'] = '0'
+    return response
 
 
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout

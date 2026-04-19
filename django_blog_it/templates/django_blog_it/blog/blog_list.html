@@ -102,6 +102,106 @@
 </div>
 {% endblock %}
 
+{% block extra_js %}
+<script>
+(function() {
+    function refreshArticleStats() {
+        var articleIds = [];
+        document.querySelectorAll('.article-card').forEach(function(card) {
+            var link = card.querySelector('a[href*="/article/"]');
+            if (link) {
+                var match = link.href.match(/\/article\/([^/]+)\//);
+                if (match) {
+                    articleIds.push(match[1]);
+                }
+            }
+        });
+        
+        if (articleIds.length > 0) {
+            fetch('/api/articles/stats/?slugs=' + articleIds.join(','), {
+                method: 'GET',
+                headers: {
+                    'Cache-Control': 'no-cache, no-store, must-revalidate'
+                },
+                cache: 'no-store'
+            })
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
+                if (data.articles) {
+                    data.articles.forEach(function(article) {
+                        var card = document.querySelector('a[href$="/article/' + article.slug + '/"]').closest('.article-card');
+                        if (card) {
+                            var stats = card.querySelector('.article-stats');
+                            if (stats) {
+                                stats.innerHTML = 
+                                    '<span><i class="fas fa-eye"></i> ' + article.views + '</span>' +
+                                    '<span><i class="fas fa-heart"></i> ' + article.likes_count + '</span>' +
+                                    '<span><i class="fas fa-comment"></i> ' + article.comments_count + '</span>';
+                            }
+                        }
+                    });
+                }
+            })
+            .catch(function(err) { console.log('Stats refresh failed:', err); });
+        }
+        
+        var popularItems = document.querySelectorAll('.popular-list li');
+        var popularSlugs = [];
+        popularItems.forEach(function(item) {
+            var link = item.querySelector('a[href*="/article/"]');
+            if (link) {
+                var match = link.href.match(/\/article\/([^/]+)\//);
+                if (match) {
+                    popularSlugs.push(match[1]);
+                }
+            }
+        });
+        
+        if (popularSlugs.length > 0) {
+            fetch('/api/articles/stats/?slugs=' + popularSlugs.join(','), {
+                method: 'GET',
+                headers: {
+                    'Cache-Control': 'no-cache, no-store, must-revalidate'
+                },
+                cache: 'no-store'
+            })
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
+                if (data.articles) {
+                    var statsMap = {};
+                    data.articles.forEach(function(a) { statsMap[a.slug] = a; });
+                    
+                    popularItems.forEach(function(item) {
+                        var link = item.querySelector('a[href*="/article/"]');
+                        if (link) {
+                            var match = link.href.match(/\/article\/([^/]+)\//);
+                            if (match && statsMap[match[1]]) {
+                                var viewsSpan = item.querySelector('.views');
+                                if (viewsSpan) {
+                                    viewsSpan.innerHTML = '<i class="fas fa-eye"></i> ' + statsMap[match[1]].views;
+                                }
+                            }
+                        }
+                    });
+                }
+            })
+            .catch(function(err) { console.log('Popular stats refresh failed:', err); });
+        }
+    }
+    
+    window.addEventListener('pageshow', function(event) {
+        if (event.persisted || (window.performance && window.performance.navigation && window.performance.navigation.type === 2)) {
+            refreshArticleStats();
+        }
+    });
+    
+    if (document.readyState === 'complete') {
+        refreshArticleStats();
+    }
+})();
+</script>
+{% endblock %}
+
 {% block extra_css %}
 <style>
     .home-layout {
