@@ -11,7 +11,7 @@
             {% if articles %}
                 <div class="articles-grid">
                     {% for article in articles %}
-                    <article class="article-card card">
+                    <article class="article-card card" data-article-id="{{ article.id }}">
                         <div class="article-header">
                             <div class="article-meta">
                                 <span class="author">
@@ -63,7 +63,7 @@
             <h3 class="sidebar-title">热门文章</h3>
             <ul class="popular-list">
                 {% for article in popular_articles %}
-                <li>
+                <li data-article-id="{{ article.id }}">
                     <a href="{% url 'django_blog_it:article_detail' slug=article.slug %}">
                         <span class="rank">{{ forloop.counter }}</span>
                         {{ article.title }}
@@ -100,6 +100,91 @@
         </div>
     </aside>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+var lastUpdateTime = localStorage.getItem('article_stats_updated') || '0';
+var isUpdating = false;
+
+function updateArticleStats() {
+    if (isUpdating) return;
+    isUpdating = true;
+    
+    $.ajax({
+        url: '{% url "django_blog_it:get_article_stats" %}',
+        type: 'GET',
+        cache: false,
+        dataType: 'json',
+        headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate'
+        },
+        success: function(data) {
+            if (data.stats) {
+                $('.article-card').each(function() {
+                    var card = $(this);
+                    var articleId = card.data('article-id');
+                    var stats = data.stats[articleId];
+                    
+                    if (stats) {
+                        var statsElements = card.find('.article-stats span');
+                        statsElements.eq(0).html('<i class="fas fa-eye"></i> ' + stats.views);
+                        statsElements.eq(1).html('<i class="fas fa-heart"></i> ' + stats.likes_count);
+                        statsElements.eq(2).html('<i class="fas fa-comment"></i> ' + stats.comments_count);
+                    }
+                });
+                
+                $('.popular-list li').each(function() {
+                    var li = $(this);
+                    var articleId = li.data('article-id');
+                    var stats = data.stats[articleId];
+                    
+                    if (stats) {
+                        li.find('.views').html('<i class="fas fa-eye"></i> ' + stats.views);
+                    }
+                });
+            }
+        },
+        complete: function() {
+            isUpdating = false;
+        }
+    });
+}
+
+function checkAndUpdate() {
+    var currentUpdateTime = localStorage.getItem('article_stats_updated') || '0';
+    if (currentUpdateTime !== lastUpdateTime) {
+        lastUpdateTime = currentUpdateTime;
+        updateArticleStats();
+    }
+}
+
+window.addEventListener('storage', function(e) {
+    if (e.key === 'article_stats_updated') {
+        checkAndUpdate();
+    }
+});
+
+window.addEventListener('pageshow', function(event) {
+    updateArticleStats();
+    checkAndUpdate();
+});
+
+document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) {
+        updateArticleStats();
+        checkAndUpdate();
+    }
+});
+
+$(document).ready(function() {
+    updateArticleStats();
+    
+    setInterval(function() {
+        checkAndUpdate();
+    }, 1000);
+});
+</script>
 {% endblock %}
 
 {% block extra_css %}

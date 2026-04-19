@@ -318,7 +318,26 @@ def home(request):
         'tags': tags,
         'popular_articles': popular_articles,
     }
-    return render(request, 'django_blog_it/blog/blog_list.html', context)
+    response = render(request, 'django_blog_it/blog/blog_list.html', context)
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+    response['Pragma'] = 'no-cache'
+    response['Expires'] = '0'
+    return response
+
+
+@require_GET
+def get_article_stats(request):
+    articles = Article.objects.filter(is_page=False, status='Published').values('id', 'views', 'likes_count', 'comments_count')
+    stats = {str(article['id']): {
+        'views': article['views'],
+        'likes_count': article['likes_count'],
+        'comments_count': article['comments_count']
+    } for article in articles}
+    response = JsonResponse({'stats': stats})
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+    response['Pragma'] = 'no-cache'
+    response['Expires'] = '0'
+    return response
 
 
 @login_required

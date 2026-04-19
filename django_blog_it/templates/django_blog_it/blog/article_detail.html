@@ -114,7 +114,13 @@
 
 {% block extra_js %}
 <script>
+function broadcastArticleUpdate() {
+    localStorage.setItem('article_stats_updated', Date.now().toString());
+}
+
 $(document).ready(function() {
+    broadcastArticleUpdate();
+    
     $('#like-btn').click(function() {
         var btn = $(this);
         var articleId = btn.data('article-id');
@@ -133,6 +139,7 @@ $(document).ready(function() {
                 if(data.success) {
                     btn.toggleClass('liked', data.liked);
                     document.querySelector('#like-btn span').textContent = data.likes_count;
+                    broadcastArticleUpdate();
                 }
             }
         });
@@ -156,6 +163,7 @@ $(document).ready(function() {
                 if(data.success) {
                     btn.toggleClass('favorited', data.favorited);
                     document.querySelector('#favorite-btn span').textContent = data.favorites_count;
+                    broadcastArticleUpdate();
                 }
             }
         });
@@ -173,6 +181,7 @@ $(document).ready(function() {
             function(data) {
                 if(data.success) {
                     textarea.val('');
+                    broadcastArticleUpdate();
                     location.reload();
                 }
             }
@@ -186,6 +195,7 @@ $(document).ready(function() {
                 {csrfmiddlewaretoken: '{{ csrf_token }}'},
                 function(data) {
                     if(data.success) {
+                        broadcastArticleUpdate();
                         location.reload();
                     }
                 }
